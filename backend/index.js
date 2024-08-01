@@ -12,7 +12,6 @@ const server = createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 app.use(cors());
 
-let users = [];
 
 app.use(express.json());
 app.use('/user', userRoutes);
