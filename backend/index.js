@@ -8,19 +8,12 @@ import cors from 'cors';
 
 const app = express();
 const server = createServer(app);
-const corsOptions = {
-  origin: 'http://localhost:5173',
-  methods: ['GET', 'POST', "DELETE"],
-  allowedHeaders: ['Content-Type'],
-  credentials: true,
-};
 
-const io = new Server(server, { cors: corsOptions });
-app.use(cors(corsOptions));
+const io = new Server(server, { cors: { origin: '*' } });
+app.use(cors());
 
 let users = [];
 
-app.use(express.static('public'));
 app.use(express.json());
 app.use('/user', userRoutes);
 
