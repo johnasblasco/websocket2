@@ -1,39 +1,47 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import mongoose from 'mongoose';
+import userRoutes, { init } from './routes/userRoutes.js';
+import axios from 'axios';
+import cors from 'cors';
 
 const app = express();
 const server = createServer(app);
+const corsOptions = {
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST', "DELETE"],
+  allowedHeaders: ['Content-Type'],
+  credentials: true,
+};
 
-const io = new Server(server, {
-  cors: {
-    origin: 'http://localhost:5173',
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
-    credentials: true,
-  },
-});
+const io = new Server(server, { cors: corsOptions });
+app.use(cors(corsOptions));
 
-let users = [
-  { id: 1, name: 'Leanne Graham' },
-  { id: 2, name: 'Ervin Howell' },
-  { id: 3, name: 'Ervin Howelsssl' },
+let users = [];
 
-];
-let userApi = "https://jsonplaceholder.typicode.com/users"
+app.use(express.static('public'));
+app.use(express.json());
+app.use('/user', userRoutes);
 
 io.on('connection', (socket) => {
-
-
   console.log('Client connected');
 
   // Send initial data to new client
-  socket.emit('users', users);
+  async function sendInitialData() {
+    try {
+      const userData = await axios.get('http://localhost:3500/user');
+      socket.emit('users', userData.data);
+    } catch (error) {
+      console.error('Error sending initial data:', error);
+    }
+  }
 
-  
+  sendInitialData();
+
   socket.on('delete', (userId) => {
+    // Update the users array and emit the updated data to all clients
     users = users.filter((user) => user.id !== userId);
-    // Broadcast updated data to all clients
     io.emit('users', users);
   });
 
@@ -41,11 +49,21 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('Client disconnected');
   });
-
-
 });
 
-app.use(express.static('public'));
-server.listen(3000, () => {
-  console.log('Server listening on port 3000');
-});
+init(io);
+
+async function connectToDatabase() {
+  try {
+    await mongoose.connect('mongodb+srv://johnasblasco:XJqJKdAYkUHtvMBM@cluster0.bxlnnpb.mongodb.net/BookStore?retryWrites=true&w=majority&appName=Cluster0');
+    console.log('Connected to the database');
+
+    server.listen(3500, () => {
+      console.log('Server listening on port 3500');
+    });
+  } catch (error) {
+    console.error('Error connecting to database:', error);
+  }
+}
+
+connectToDatabase();
